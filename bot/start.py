@@ -489,6 +489,7 @@ async def process(bot, message):
                                                         await delete_trash(subtitle)
                                                         await delete_trash(mux_output)
                                                         final_video = output_vid
+                                                        mfailed[value] = data
                                                         if WP:
                                                                 cc = f"{str(file_name)}\n\n✅watermark\n❌{str(sub_mode)}"
                                                         else:
@@ -519,7 +520,7 @@ async def process(bot, message):
                                         datam = (file_name, f"{str(countx)}/{str(limit_to-limit)}", remnx, '🔼Uploadinig Video', '𝚄𝚙𝚕𝚘𝚊𝚍𝚎𝚍', stime, mtime, len(failed), len(cancelled), len(wfailed), len(mfailed))
                                         print(final_thumb)
                                         print(final_video)
-                                        if getsize(final_video)<246250000:
+                                        if getsize(final_video)<2093796556:
                                                 sendx = await send_tg_video(bot, user_id, final_video, cc, duration, final_thumb, reply, start_time, subprocess_id, process_id, datam)
                                         else:
                                                 user_reply = await USER.send_message(chat_id=user_id,

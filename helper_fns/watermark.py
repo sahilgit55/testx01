@@ -206,7 +206,7 @@ async def vidmarkx(the_media, msg, working_dir, watermark_path, output_vid, tota
     msg_data = ['Processing']
     COMPRESSION_START_TIME = timex()
     command = [
-        "ffmpeg", "-hide_banner", "-progress", working_dir, "-i", the_media, "-i", watermark_path,
+        "ffmpeg", "-hide_banner", "-progress", working_dir, "-i", the_media, "-i", watermark_path, "-map", "0",
         "-filter_complex", f"[1][0]scale2ref=w='iw*{size}/100':h='ow/mdar'[wm][vid];[vid][wm]overlay={position}", "-preset", mode, "-codec:a", "copy", output_vid
     ]
     process = await create_subprocess_exec(
@@ -289,8 +289,8 @@ async def hardmux_vidx(vid_filename, sub_filename, output, msg, subprocess_id, p
             'ffmpeg','-hide_banner',
             '-progress', progress, '-i', vid_filename,
             '-vf', f"subtitles='{sub_filename}'",
-            '-map','0:v:0',
-            '-map','0:a:0?',
+            '-map','0:v',
+            '-map','0:a',
             '-preset', preset,
             '-c:a','copy', output
             ]
