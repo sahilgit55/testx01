@@ -17,8 +17,8 @@ app = Client(
 
 if __name__ == "__main__":
     app.start()
-    User = Config.USER.start()
-    first_name = User.get_me().first_name
+    # User = Config.USER.start()
+    # first_name = User.get_me().first_name
     uname = app.get_me().username
     try:
         if 'restart' in User_Data:
@@ -37,7 +37,7 @@ if __name__ == "__main__":
                     pass
     except Exception as e:
         print("🧩Error While Updating Restart Message:\n\n", e)
-    print(f'🔒User Session For {first_name} Started Successfully!🔒')
+    # print(f'🔒User Session For {first_name} Started Successfully!🔒')
     print(f'✅@{uname} Started Successfully!✅')
     print(f"⚡Bot By Sahil Nolia⚡")
     idle()
