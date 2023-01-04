@@ -138,6 +138,7 @@ async def processor(bot, message, muxing_type):
                 await make_direc(Ddir)
                 await make_direc(Wdir)
                 trash_list = []
+                map = '0:a'
                 if muxing_type!='Watermark':
                                 subm = await bot.get_messages(user_id, sub_id, replies=0)
                                 sub_name = get_media(subm).file_name.replace(' ', '')
@@ -195,7 +196,25 @@ async def processor(bot, message, muxing_type):
                                                                         sname = f"{stream_type.upper()} - {str(lang).upper()} [{codec_long_name}]"
                                                                         stream_data[sname] =mapping
                                                                         smsg+= f'`{sname}`\n\n'
-                                                        print(smsg)
+                                                        if len(stream_data)==0:
+                                                                await bot.send_message(user_id, "❗No Stream Found In Video")
+                                                                select_stream = False
+                                                        else:
+                                                                try:
+                                                                                ask = await bot.ask(user_id, f'*️⃣{str(len(stream_data))} Streams Found, Send Stream From Below Streams\n\n\n{str(smsg)}\n⌛Request Timeout In 60 Seconds.', timeout=60, filters=filters.text)
+                                                                                cstream  = ask.text
+                                                                                if cstream not in stream_data:
+                                                                                        await ask.request.delete()
+                                                                                        await bot.send_message(user_id, "❗Invalid Stream")
+                                                                                        select_stream = False
+                                                                                else:
+                                                                                        await ask.request.delete()
+                                                                                        stream_no = stream_data[cstream]
+                                                                                        map = f'0:a:{str(int(stream_no)-1)}'
+                                                                                        print(f'🔶Stream Selected For {str(file_name)}\n{str(cstream)}\nStream No: {str(stream_no)}')
+                                                                except:
+                                                                        await bot.send_message(user_id, "🔃Timed Out! Tasked Has Been Cancelled.")
+                                                                        select_stream = False
                                                 except Exception as e:
                                                         await bot.send_message(user_id, "❌Failed To Get Audio Streams From Video")
                                                         select_stream = False
@@ -216,8 +235,8 @@ async def processor(bot, message, muxing_type):
                                         watermark_path = f'./{str(userx)}_watermark.jpg'
                                         process_name = '🛺Adding Watermark'
                                         command = [
-                                                                "ffmpeg", "-hide_banner", "-progress", progress, "-i", the_media, "-i", watermark_path, "-map", "0",
-                                                                "-filter_complex", f"[1][0]scale2ref=w='iw*{watermark_size}/100':h='ow/mdar'[wm][vid];[vid][wm]overlay={watermark_position}", "-preset", preset, "-codec:a", "copy", "-y", output_vid
+                                                                "ffmpeg", "-hide_banner", "-progress", progress, "-i", the_media, "-i", watermark_path, "-map", f"0:v", "-map", f"{str(map)}", "-map", f"0:s",
+                                                                "-filter_complex", f"[1][0]scale2ref=w='iw*{watermark_size}/100':h='ow/mdar'[wm][vid];[vid][wm]overlay={watermark_position}", "-preset", preset, "-c:a", "copy", "-y", output_vid
                                                         ]
                                 elif muxing_type == 'HardMux':
                                         output_vid = f"{Wdir}/{str(userx)}_{str(file_name)}_({str(muxing_type)}).mp4"
@@ -228,7 +247,8 @@ async def processor(bot, message, muxing_type):
                                                                 '-progress', progress, '-i', the_media,
                                                                 '-vf', f"subtitles='{sub_loc}'",
                                                                 '-map','0:v',
-                                                                '-map','0:a',
+                                                                '-map',f'{str(map)}',
+                                                                '-map','0:s',
                                                                 '-preset', preset,
                                                                 '-c:a','copy', '-y', output_vid
                                                                 ]
@@ -240,7 +260,10 @@ async def processor(bot, message, muxing_type):
                                                                 'ffmpeg','-hide_banner',
                                                                 '-progress', progress, '-i', the_media,
                                                                 '-i',sub_loc,
-                                                                '-map','1:0','-map','0',
+                                                                '-map','1:0',
+                                                                '-map','0:v',
+                                                                '-map',f'{str(map)}',
+                                                                '-map','0:s',
                                                                 '-disposition:s:0','default',
                                                                 '-c:v','copy',
                                                                 '-c:a','copy',
@@ -255,8 +278,8 @@ async def processor(bot, message, muxing_type):
                                                                 'ffmpeg','-hide_banner',
                                                                 '-progress', progress, '-i', the_media,
                                                                 '-i',sub_loc,
-                                                                '-map','0:v:0',
-                                                                '-map','0:a?',
+                                                                '-map','0:v',
+                                                                '-map',f'{str(map)}',
                                                                 '-map','1:0',
                                                                 '-disposition:s:0','default',
                                                                 '-c:v','copy',
@@ -276,7 +299,10 @@ async def processor(bot, message, muxing_type):
                                         else:
                                                 final_video = output_vid
                                                 final_thumb = './thumb.jpg'
-                                                cc = f"{str(file_name)}"
+                                                if not select_stream:
+                                                        cc = f"{str(file_name)}"
+                                                else:
+                                                        cc = f"{str(file_name)}\n\n✅Stream: {str(cstream)}"
                                                 datam = (file_name, '🔼Uploading Video', '𝚄𝚙𝚕𝚘𝚊𝚍𝚎𝚍', mptime)
                                                 start_time = timex()
                                                 upload = await send_tg_video(bot, user_id, final_video, cc, duration, final_thumb, reply, start_time, datam, modes)
