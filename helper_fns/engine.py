@@ -75,6 +75,9 @@ async def update_message(message, input_vid, output_vid, preset, process_log, du
             except:
                 position = watermark_position
             process_options =  f"\n🧬WPosition: {str(position)}\n🛸WSize: {str(watermark_size)}"
+    if modes['process_type'] == 'Compressing':
+        crf = modes['crf']
+        process_options = f"\n🛡Mode: {str(modes['process_type'])}\n🎵CRF: {str(crf)}"
     else:
             process_options = f"\n🛡Mode: {str(modes['process_type'])}"
     if modes['files']>1:

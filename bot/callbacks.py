@@ -1,7 +1,7 @@
 from pyrogram import Client
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config import Config
-from helper_fns.helper import USER_DATA, saveconfig, check_filex, delete_all, delete_trash
+from helper_fns.helper import USER_DATA, saveconfig, check_filex, delete_all, delete_trash,saveoptions
 from os import listdir
 from os.path import isfile
 
@@ -25,7 +25,7 @@ async def newbt(client, callback_query):
         # await callback_query.message.delete()
         
         
-        if txt.startswith("position_") or txt.startswith("size_") or txt.startswith("wpreset_") or txt.startswith("mpreset_"):
+        if txt.startswith("position_") or txt.startswith("size_") or txt.startswith("wpreset_") or txt.startswith("mpreset_") or txt.startswith("cpreset_") or txt.startswith("ccrp_") or txt.startswith("sstream_"):
                 new_position = txt.split("_", 1)[1]
                 if txt.startswith("position_"):
                     await saveconfig(userx, 'watermark', 'position', new_position)
@@ -35,10 +35,23 @@ async def newbt(client, callback_query):
                     await saveconfig(userx, 'watermark', 'preset', new_position)
                 elif txt.startswith("mpreset_"):
                     await saveconfig(userx, 'muxer', 'preset', new_position)
+                elif txt.startswith("cpreset_"):
+                    await saveconfig(userx, 'compress', 'preset', new_position)
+                elif txt.startswith("ccrp_"):
+                    await saveconfig(userx, 'compress', 'crf', new_position)
+                elif txt.startswith("sstream_"):
+                    if new_position=="True":
+                        new_position = True
+                    else:
+                        new_position = False
+                    await saveoptions(userx, 'select_stream', new_position)
                 watermark_position = USER_DATA()[userx]['watermark']['position']
                 watermark_size = USER_DATA()[userx]['watermark']['size']
                 watermark_preset = USER_DATA()[userx]['watermark']['preset']
                 muxer_preset = USER_DATA()[userx]['muxer']['preset']
+                compress_preset = USER_DATA()[userx]['compress']['preset']
+                compress_crp = USER_DATA()[userx]['compress']['crf']
+                select_stream = USER_DATA()[userx]['select_stream']
                 positions = {'Set Top Left':"position_5:5", "Set Top Right": "position_main_w-overlay_w-5:5", "Set Bottom Left": "position_5:main_h-overlay_h", "Set Bottom Right": "position_main_w-overlay_w-5:main_h-overlay_h-5"}
                 sizes = [5,7,10,13,15,17,20,25,30,35,40,45]
                 pkeys = list(positions.keys())
@@ -84,26 +97,112 @@ async def newbt(client, callback_query):
                 KeyBoard.append(WS2)
                 KeyBoard.append(WS3)
                 KeyBoard.append([InlineKeyboardButton(f"🔶Watermark Preset - {watermark_preset}🔶", callback_data="lol-wpset")])
-                presets = ['ultrafast', 'veryfast']
-                WP = []
+                presets = ['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow']
+                WX1 = []
+                WX2 = []
+                WX3 = []
+                zz = 1
                 for pp in presets:
                     if watermark_preset!=pp:
                         datam = pp
                     else:
                         datam = f"{str(pp)} 🟢"
                     keyboard = InlineKeyboardButton(datam, callback_data=f'wpreset_{str(pp)}')
-                    WP.append(keyboard)
-                KeyBoard.append(WP)
+                    if zz<4:
+                            WX1.append(keyboard)
+                    elif zz<7:
+                            WX2.append(keyboard)
+                    else:
+                            WX3.append(keyboard)
+                    zz+=1
+                KeyBoard.append(WX1)
+                KeyBoard.append(WX2)
+                KeyBoard.append(WX3)
                 KeyBoard.append([InlineKeyboardButton(f"🔶Muxer Preset - {muxer_preset}🔶", callback_data="lol-mpset")])
-                MP = []
+                MP1 = []
+                MP2 = []
+                MP3 = []
+                zz = 1
                 for pp in presets:
                     if muxer_preset!=pp:
                         datam = pp
                     else:
                         datam = f"{str(pp)} 🟢"
                     keyboard = InlineKeyboardButton(datam, callback_data=f'mpreset_{str(pp)}')
-                    MP.append(keyboard)
-                KeyBoard.append(MP)
+                    if zz<4:
+                            MP1.append(keyboard)
+                    elif zz<7:
+                            MP2.append(keyboard)
+                    else:
+                            MP3.append(keyboard)
+                    zz+=1
+                KeyBoard.append(MP1)
+                KeyBoard.append(MP2)
+                KeyBoard.append(MP3)
+                KeyBoard.append([InlineKeyboardButton(f"🔶Compress Preset - {compress_preset}🔶", callback_data="lol-cpset")])
+                cp1 = []
+                cp2 = []
+                cp3 = []
+                zz = 1
+                for pp in presets:
+                    if compress_preset!=pp:
+                        datam = pp
+                    else:
+                        datam = f"{str(pp)} 🟢"
+                    keyboard = InlineKeyboardButton(datam, callback_data=f'cpreset_{str(pp)}')
+                    if zz<4:
+                            cp1.append(keyboard)
+                    elif zz<7:
+                            cp2.append(keyboard)
+                    else:
+                            cp3.append(keyboard)
+                    zz+=1
+                KeyBoard.append(cp1)
+                KeyBoard.append(cp2)
+                KeyBoard.append(cp3)
+                KeyBoard.append([InlineKeyboardButton(f"🔶Compress CRF - {compress_crp}🔶", callback_data="lol-ccrp")])
+                crfs = [0, 3, 6, 9, 12, 15, 18, 21, 23, 24, 27, 28, 30, 33, 36, 39, 42, 45, 48, 51]
+                CCRP1 = []
+                CCRP2 = []
+                CCRP3 = []
+                CCRP4 = []
+                CCRP5 = []
+                zz = 1
+                for x in crfs:
+                    vlue = f"ccrp_{str(x)}"
+                    if int(compress_crp)!=int(x):
+                        datam = f"{str(x)}"
+                    else:
+                        datam = f"{str(x)} 🟢"
+                    keyboard = InlineKeyboardButton(datam, callback_data=vlue)
+                    if zz<5:
+                            CCRP1.append(keyboard)
+                    elif zz<9:
+                            CCRP2.append(keyboard)
+                    elif zz<13:
+                            CCRP3.append(keyboard)
+                    elif zz<17:
+                        CCRP4.append(keyboard)
+                    else:
+                        CCRP5.append(keyboard)
+                    zz+=1
+                KeyBoard.append(CCRP1)
+                KeyBoard.append(CCRP2)
+                KeyBoard.append(CCRP3)
+                KeyBoard.append(CCRP4)
+                KeyBoard.append(CCRP5)
+                streams = [True, False]
+                KeyBoard.append([InlineKeyboardButton(f"🔶Select Stream - {str(select_stream)}🔶", callback_data="lol-sstream")])
+                st = []
+                for x in streams:
+                    vlue = f"sstream_{str(x)}"
+                    if select_stream!=x:
+                        datam = f"{str(x)}"
+                    else:
+                        datam = f"{str(x)} 🟢"
+                    keyboard = InlineKeyboardButton(datam, callback_data=vlue)
+                    st.append(keyboard)
+                KeyBoard.append(st)
                 watermark_path = f'./{str(userx)}_watermark.jpg'
                 watermark_check = await check_filex(watermark_path)
                 if watermark_check:

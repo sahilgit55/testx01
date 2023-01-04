@@ -110,15 +110,25 @@ async def new_user(user_id):
         User_Data[user_id]['watermark'] = {}
         User_Data[user_id]['watermark']['position'] = '5:5'
         User_Data[user_id]['watermark']['size'] = '7'
+        User_Data[user_id]['watermark']['crf'] = '23'
         User_Data[user_id]['watermark']['preset'] = 'ultrafast'
         User_Data[user_id]['muxer'] = {}
         User_Data[user_id]['muxer']['preset'] = 'ultrafast'
+        User_Data[user_id]['muxer']['crf'] = '23'
+        User_Data[user_id]['compress'] = {}
+        User_Data[user_id]['compress']['preset'] = 'ultrafast'
+        User_Data[user_id]['compress']['crf'] = '23'
+        User_Data[user_id]['compression'] = False
+        User_Data[user_id]['encoder'] = 'libx265'
+        User_Data[user_id]['select_stream'] = False
+        User_Data[user_id]['split'] = 2
         data = await db.add_datam(str(User_Data), CREDIT, "User_Data")
         return data
 
 
 ##########Save Token###############
 async def saveconfig(user_id, dname, pos, value):
+    print("🔶Saving New Config")
     try:
         if user_id not in User_Data:
             User_Data[user_id] = {}
@@ -126,6 +136,22 @@ async def saveconfig(user_id, dname, pos, value):
             User_Data[user_id][dname][pos] = value
         else:
             User_Data[user_id][dname][pos] = value
+        data = await db.add_datam(str(User_Data), CREDIT, "User_Data")
+        return data
+    except Exception as e:
+        print(e)
+        return False
+    
+##########options###############
+async def saveoptions(user_id, dname, value):
+    print("🔶Saving New Config")
+    try:
+        if user_id not in User_Data:
+            User_Data[user_id] = {}
+            User_Data[user_id][dname] = {}
+            User_Data[user_id][dname] = value
+        else:
+            User_Data[user_id][dname] = value
         data = await db.add_datam(str(User_Data), CREDIT, "User_Data")
         return data
     except Exception as e:

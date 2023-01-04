@@ -111,7 +111,8 @@ async def processor(bot, message, muxing_type):
                                 await bot.send_message(user_id, "🔃Timed Out! Tasked Has Been Cancelled.")
                                 return
                         await ask.request.delete()
-                if muxing_type!='Watermark':
+                print("🎨Process Type", muxing_type)
+                if muxing_type not in ('Watermark' 'Compressing'):
                         try:
                                 ask = await bot.ask(user_id, f'*️⃣Send Subtitle File To Mux\n\n⏳Request Time Out In 60 Seconds', timeout=60, filters=filters.document)
                                 if ask.document:
@@ -139,7 +140,7 @@ async def processor(bot, message, muxing_type):
                 await make_direc(Wdir)
                 trash_list = []
                 map = '0:a'
-                if muxing_type!='Watermark':
+                if muxing_type not in ('Watermark' 'Compressing'):
                                 subm = await bot.get_messages(user_id, sub_id, replies=0)
                                 sub_name = get_media(subm).file_name.replace(' ', '')
                                 sub_loc = f'{Ddir}/{str(userx)}_{str(sub_name)}'
@@ -170,7 +171,7 @@ async def processor(bot, message, muxing_type):
                         if download[0]:
                                 the_media = download[1]
                                 trash_list.append(the_media)
-                                select_stream = True
+                                select_stream = USER_DATA()[userx]['select_stream']
                                 if select_stream:
                                         get_streams = await execute(
                                                                                                 f"ffprobe -hide_banner -show_streams -print_format json '{the_media}'"
@@ -248,9 +249,9 @@ async def processor(bot, message, muxing_type):
                                                                 '-vf', f"subtitles='{sub_loc}'",
                                                                 '-map','0:v',
                                                                 '-map',f'{str(map)}',
-                                                                '-map','0:s',
                                                                 '-preset', preset,
-                                                                '-c:a','copy', '-y', output_vid
+                                                                '-c:a','copy',
+                                                                '-y',output_vid
                                                                 ]
                                 elif muxing_type == 'SoftMux':
                                         output_vid = f"{Wdir}/{str(userx)}_{str(file_name)}_({str(muxing_type)}).mkv"
@@ -285,6 +286,20 @@ async def processor(bot, message, muxing_type):
                                                                 '-c:v','copy',
                                                                 '-c:a','copy',
                                                                 '-c:s','copy',
+                                                                '-y',output_vid
+                                                                ]
+                                elif muxing_type=='Compressing':
+                                        output_vid = f"{Wdir}/{str(userx)}_{str(file_name)}"
+                                        preset =  USER_DATA()[userx]['compress']['preset']
+                                        compress_crf = USER_DATA()[userx]['compress']['crf']
+                                        process_name = '🏮Compressing Video'
+                                        modes['crf'] = compress_crf
+                                        command = [
+                                                                'ffmpeg','-hide_banner',
+                                                                '-progress', progress, '-i', the_media,
+                                                                '-vcodec','libx265',
+                                                                '-preset', preset,
+                                                                '-crf',f'{str(compress_crf)}',
                                                                 '-y',output_vid
                                                                 ]
                                 trash_list.append(output_vid)
@@ -531,6 +546,22 @@ async def softremuxvideo(bot, message):
         else:
                 await bot.send_message(user_id, "❌Not Authorized")
                 return
+
+###########Compress Video#################
+@Client.on_message(filters.command('compress'))
+async def compressvideo(bot, message):
+        user_id = message.chat.id
+        userx = message.from_user.id
+        if userx not in USER_DATA():
+                await new_user(userx)
+        if userx in sudo_users:
+                muxing_type = 'Compressing'
+                await processor(bot, message,muxing_type)
+                return
+        else:
+                await bot.send_message(user_id, "❌Not Authorized")
+                return
+
 
 ###############start remux##############
 
@@ -967,6 +998,9 @@ async def settings(client, message):
                 watermark_size = USER_DATA()[userx]['watermark']['size']
                 watermark_preset = USER_DATA()[userx]['watermark']['preset']
                 muxer_preset = USER_DATA()[userx]['muxer']['preset']
+                compress_preset = USER_DATA()[userx]['compress']['preset']
+                compress_crp = USER_DATA()[userx]['compress']['crf']
+                select_stream = USER_DATA()[userx]['select_stream']
                 positions = {'Set Top Left':"position_5:5", "Set Top Right": "position_main_w-overlay_w-5:5", "Set Bottom Left": "position_5:main_h-overlay_h", "Set Bottom Right": "position_main_w-overlay_w-5:main_h-overlay_h-5"}
                 sizes = [5,7,10,13,15,17,20,25,30,35,40,45]
                 pkeys = list(positions.keys())
@@ -1012,26 +1046,112 @@ async def settings(client, message):
                 KeyBoard.append(WS2)
                 KeyBoard.append(WS3)
                 KeyBoard.append([InlineKeyboardButton(f"🔶Watermark Preset - {watermark_preset}🔶", callback_data="lol-wpset")])
-                presets = ['ultrafast', 'veryfast']
-                WP = []
+                presets = ['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow']
+                WX1 = []
+                WX2 = []
+                WX3 = []
+                zz = 1
                 for pp in presets:
                     if watermark_preset!=pp:
                         datam = pp
                     else:
                         datam = f"{str(pp)} 🟢"
                     keyboard = InlineKeyboardButton(datam, callback_data=f'wpreset_{str(pp)}')
-                    WP.append(keyboard)
-                KeyBoard.append(WP)
+                    if zz<4:
+                            WX1.append(keyboard)
+                    elif zz<7:
+                            WX2.append(keyboard)
+                    else:
+                            WX3.append(keyboard)
+                    zz+=1
+                KeyBoard.append(WX1)
+                KeyBoard.append(WX2)
+                KeyBoard.append(WX3)
                 KeyBoard.append([InlineKeyboardButton(f"🔶Muxer Preset - {muxer_preset}🔶", callback_data="lol-mpset")])
-                MP = []
+                MP1 = []
+                MP2 = []
+                MP3 = []
+                zz = 1
                 for pp in presets:
                     if muxer_preset!=pp:
                         datam = pp
                     else:
                         datam = f"{str(pp)} 🟢"
                     keyboard = InlineKeyboardButton(datam, callback_data=f'mpreset_{str(pp)}')
-                    MP.append(keyboard)
-                KeyBoard.append(MP)
+                    if zz<4:
+                            MP1.append(keyboard)
+                    elif zz<7:
+                            MP2.append(keyboard)
+                    else:
+                            MP3.append(keyboard)
+                    zz+=1
+                KeyBoard.append(MP1)
+                KeyBoard.append(MP2)
+                KeyBoard.append(MP3)
+                KeyBoard.append([InlineKeyboardButton(f"🔶Compress Preset - {compress_preset}🔶", callback_data="lol-cpset")])
+                cp1 = []
+                cp2 = []
+                cp3 = []
+                zz = 1
+                for pp in presets:
+                    if compress_preset!=pp:
+                        datam = pp
+                    else:
+                        datam = f"{str(pp)} 🟢"
+                    keyboard = InlineKeyboardButton(datam, callback_data=f'cpreset_{str(pp)}')
+                    if zz<4:
+                            cp1.append(keyboard)
+                    elif zz<7:
+                            cp2.append(keyboard)
+                    else:
+                            cp3.append(keyboard)
+                    zz+=1
+                KeyBoard.append(cp1)
+                KeyBoard.append(cp2)
+                KeyBoard.append(cp3)
+                KeyBoard.append([InlineKeyboardButton(f"🔶Compress CRF - {compress_crp}🔶", callback_data="lol-ccrp")])
+                crfs = [0, 3, 6, 9, 12, 15, 18, 21, 23, 24, 27, 28, 30, 33, 36, 39, 42, 45, 48, 51]
+                CCRP1 = []
+                CCRP2 = []
+                CCRP3 = []
+                CCRP4 = []
+                CCRP5 = []
+                zz = 1
+                for x in crfs:
+                    vlue = f"ccrp_{str(x)}"
+                    if int(compress_crp)!=int(x):
+                        datam = f"{str(x)}"
+                    else:
+                        datam = f"{str(x)} 🟢"
+                    keyboard = InlineKeyboardButton(datam, callback_data=vlue)
+                    if zz<5:
+                            CCRP1.append(keyboard)
+                    elif zz<9:
+                            CCRP2.append(keyboard)
+                    elif zz<13:
+                            CCRP3.append(keyboard)
+                    elif zz<17:
+                        CCRP4.append(keyboard)
+                    else:
+                        CCRP5.append(keyboard)
+                    zz+=1
+                KeyBoard.append(CCRP1)
+                KeyBoard.append(CCRP2)
+                KeyBoard.append(CCRP3)
+                KeyBoard.append(CCRP4)
+                KeyBoard.append(CCRP5)
+                streams = [True, False]
+                KeyBoard.append([InlineKeyboardButton(f"🔶Select Stream - {str(select_stream)}🔶", callback_data="lol-sstream")])
+                st = []
+                for x in streams:
+                    vlue = f"sstream_{str(x)}"
+                    if select_stream!=x:
+                        datam = f"{str(x)}"
+                    else:
+                        datam = f"{str(x)} 🟢"
+                    keyboard = InlineKeyboardButton(datam, callback_data=vlue)
+                    st.append(keyboard)
+                KeyBoard.append(st)
                 watermark_path = f'./{str(userx)}_watermark.jpg'
                 watermark_check = await check_filex(watermark_path)
                 if watermark_check:
