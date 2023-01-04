@@ -1,8 +1,7 @@
 from pyrogram import Client,  filters
 from config import Config
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from helper_fns.helper import get_readable_time, USER_DATA, get_media, timex, delete_all, delete_trash, new_user, create_process_file, make_direc, durationx, clear_trash_list, check_filex, save_restart
-from helper_fns.pbar import progress_bar
+from helper_fns.helper import get_readable_time, USER_DATA, get_media, timex, delete_all, delete_trash, new_user, create_process_file, make_direc, durationx, clear_trash_list, check_filex, save_restart, process_checker
 from config import botStartTime
 from helper_fns.watermark import vidmarkx, hardmux_vidx, softmux_vidx, softremove_vidx
 from string import ascii_lowercase, digits
@@ -13,6 +12,10 @@ from helper_fns.process import append_master_process, remove_master_process, get
 from os.path import getsize
 from os import execl
 from sys import argv, executable
+from helper_fns.engine import ffmpeg_engine
+from helper_fns.progress_bar import progress_bar
+from helper_fns.helper import execute
+from json import loads
 
 
 ############Variables##############
@@ -22,9 +25,10 @@ wpositions = {'5:5': 'Top Left', 'main_w-overlay_w-5:5': 'Top Right', '5:main_h-
 
 
 ###########Send Video##############
-async def send_tg_video(bot, user_id, final_video, cc, duration, final_thumb, reply, start_time, subprocess_id, process_id, datam):
+async def send_tg_video(bot, user_id, final_video, cc, duration, final_thumb, reply, start_time, datam, modes):
+                                        print("🔶Starting Video Upload", datam[0])
                                         try:
-                                                await bot.send_video(
+                                                the_media = await bot.send_video(
                                                                 chat_id=user_id,
                                                                 video=final_video,
                                                                 caption=cc,
@@ -32,12 +36,13 @@ async def send_tg_video(bot, user_id, final_video, cc, duration, final_thumb, re
                                                                 duration=duration,
                                                                 thumb=final_thumb,
                                                                 progress=progress_bar,
-                                                                progress_args=(reply,start_time, bot, subprocess_id, process_id, *datam)
+                                                                progress_args=(reply,start_time, bot, datam, modes)
                                                 )
-                                                return [True]
+                                                print("✅Video Uploaded Successfully", datam[0])
+                                                return [True, the_media]
                                         except FloodWait as e:
                                                 await asynciosleep(int(e.value)+10)
-                                                await bot.send_video(
+                                                the_media =await bot.send_video(
                                                                 chat_id=user_id,
                                                                 video=final_video,
                                                                 caption=cc,
@@ -45,14 +50,260 @@ async def send_tg_video(bot, user_id, final_video, cc, duration, final_thumb, re
                                                                 duration=duration,
                                                                 thumb=final_thumb,
                                                                 progress=progress_bar,
-                                                                progress_args=(reply,start_time, bot, subprocess_id, process_id, *datam)
+                                                                progress_args=(reply,start_time, bot, datam, modes)
                                                 )
-                                                return [True]
+                                                print("✅Video Uploaded Successfully", datam[0])
+                                                return [True, the_media]
                                         except Exception as e:
+                                                print("❌Error While Sending Video\n", e, datam[0])
                                                 return [False, e]
 
 
+#########Download Tg File##############
+async def download_tg_file(bot, m, dl_loc, reply, start_time, datam, modes):
+                                print("🔶Starting Download", datam[0])
+                                try:
+                                        the_media = await bot.download_media(
+                                                        message=m,
+                                                        file_name=dl_loc,
+                                                        progress=progress_bar,
+                                                        progress_args=(reply,start_time, bot, datam, modes)
+                                                )
+                                        print("✅Successfully Downloaded", datam[0])
+                                        return [True, the_media]
+                                except FloodWait as e:
+                                                await asynciosleep(int(e.value)+10)
+                                                the_media = await bot.download_media(
+                                                        message=m,
+                                                        file_name=dl_loc,
+                                                        progress=progress_bar,
+                                                        progress_args=(reply,start_time, bot, datam, modes)
+                                                )
+                                                print("✅Successfully Downloaded", datam[0])
+                                                return [True, the_media]
+                                except Exception as e:
+                                                print("❌Downloading Error\n", e, datam[0])
+                                                return [False, e]
 
+
+##########Processor################
+async def processor(bot, message, muxing_type):
+                user_id = message.chat.id
+                userx = message.from_user.id
+                try:
+                                file_type = message.reply_to_message.video or message.reply_to_message.document
+                                if file_type.mime_type.startswith("video/"):
+                                        file_id = int(message.reply_to_message.id)
+                                else:
+                                        await bot.send_message(user_id, "❌Invalid Media")
+                                        return
+                except:
+                        try:
+                                ask = await bot.ask(user_id, '*️⃣ Send Me Video\n\n⌛Request TimeOut In 60 Seconds', timeout=60, filters=(filters.document | filters.video))
+                                file_type = ask.video or ask.document
+                                if file_type.mime_type.startswith("video/"):
+                                        file_id = ask.id
+                                else:
+                                        await ask.request.delete()
+                                        await bot.send_message(user_id, "❌Invalid Media")
+                                        return
+                        except:
+                                await bot.send_message(user_id, "🔃Timed Out! Tasked Has Been Cancelled.")
+                                return
+                        await ask.request.delete()
+                if muxing_type!='Watermark':
+                        try:
+                                ask = await bot.ask(user_id, f'*️⃣Send Subtitle File To Mux\n\n⏳Request Time Out In 60 Seconds', timeout=60, filters=filters.document)
+                                if ask.document:
+                                        file_type = ask.document
+                                        if not file_type.mime_type.startswith("video/"):
+                                                        sub_id = ask.id
+                                        else:
+                                                        await ask.request.delete()
+                                                        await bot.send_message(user_id, "❌Invalid Media")
+                                                        return
+                                else:
+                                        await ask.request.delete()
+                                        await bot.send_message(user_id, "❌Invalid Media")
+                                        return
+                        except:
+                                        await bot.send_message(user_id, "🔃Timed Out! Tasked Has Been Cancelled.")
+                                        return
+                        await ask.request.delete()
+                process_id = str(''.join(choices(ascii_lowercase + digits, k=10)))
+                append_master_process(process_id)
+                mptime = timex()
+                Ddir = f'./{str(userx)}_RAW'
+                Wdir = f'./{str(userx)}_WORKING'
+                await make_direc(Ddir)
+                await make_direc(Wdir)
+                trash_list = []
+                if muxing_type!='Watermark':
+                                subm = await bot.get_messages(user_id, sub_id, replies=0)
+                                sub_name = get_media(subm).file_name.replace(' ', '')
+                                sub_loc = f'{Ddir}/{str(userx)}_{str(sub_name)}'
+                                sub_download = await bot.download_media(subm, sub_loc)
+                                if sub_download is None:
+                                        await delete_trash(sub_loc)
+                                        remove_master_process(process_id)
+                                        await  bot.send_message(chat_id=user_id,
+                                                        text=f"❌Failed To Download Subtitles")
+                                        return
+                m = await bot.get_messages(user_id, file_id, replies=0)
+                media = get_media(m)
+                file_name = media.file_name.replace(' ', '')
+                dl_loc = f'{Ddir}/{str(userx)}_{str(file_name)}'
+                start_time = timex()
+                modes = {'files': 1, 'process_id': process_id}
+                datam = (file_name, '🔽Downloading Video', '𝙳𝚘𝚠𝚗𝚕𝚘𝚊𝚍𝚎𝚍', mptime)
+                reply = await bot.send_message(chat_id=user_id,
+                                        text=f"🔽Starting Download\n🎟️File: {file_name}")
+                try:
+                        download = await download_tg_file(bot, m, dl_loc, reply, start_time, datam, modes)
+                        check_data = [[process_id, get_master_process()]]
+                        checker = await process_checker(check_data)
+                        if not checker:
+                                await delete_trash(dl_loc)
+                                await reply.edit("🔒Task Cancelled By User")
+                                return
+                        if download[0]:
+                                the_media = download[1]
+                                trash_list.append(the_media)
+                                select_stream = True
+                                if select_stream:
+                                        get_streams = await execute(
+                                                                                                f"ffprobe -hide_banner -show_streams -print_format json '{the_media}'"
+                                                                                        )
+                                        if not get_streams:
+                                                        await bot.send_message(user_id, "❌Failed To Get Audio Streams From Video")
+                                                        select_stream = False
+                                        else:
+                                                details = loads(get_streams[0])
+                                                stream_data = {}
+                                                smsg = ''
+                                                try:
+                                                        for stream in details["streams"]:
+                                                                stream_name = stream["codec_name"]
+                                                                stream_type = stream["codec_type"]
+                                                                codec_long_name = stream['codec_long_name']
+                                                                if stream_type in ("audio"):
+                                                                        mapping = stream["index"]
+                                                                        try:
+                                                                                lang = stream["tags"]["language"]
+                                                                        except:
+                                                                                lang = mapping
+                                                                        sname = f"{stream_type.upper()} - {str(lang).upper()} [{codec_long_name}]"
+                                                                        stream_data[sname] =mapping
+                                                                        smsg+= f'`{sname}`\n\n'
+                                                        print(smsg)
+                                                except Exception as e:
+                                                        await bot.send_message(user_id, "❌Failed To Get Audio Streams From Video")
+                                                        select_stream = False
+                                duration = 0
+                                try:
+                                        duration = int(durationx(the_media))
+                                except:
+                                        pass
+                                progress = f"{Wdir}/{str(userx)}_{str(file_name)}_progress.txt"
+                                await create_process_file(progress)
+                                if muxing_type=='Watermark':
+                                        output_vid = f"{Wdir}/{str(userx)}_{str(file_name)}"
+                                        preset = USER_DATA()[userx]['watermark']['preset']
+                                        watermark_position = USER_DATA()[userx]['watermark']['position']
+                                        watermark_size = USER_DATA()[userx]['watermark']['size']
+                                        modes['watermark_position'] = watermark_position
+                                        modes['watermark_size'] = watermark_size
+                                        watermark_path = f'./{str(userx)}_watermark.jpg'
+                                        process_name = '🛺Adding Watermark'
+                                        command = [
+                                                                "ffmpeg", "-hide_banner", "-progress", progress, "-i", the_media, "-i", watermark_path, "-map", "0",
+                                                                "-filter_complex", f"[1][0]scale2ref=w='iw*{watermark_size}/100':h='ow/mdar'[wm][vid];[vid][wm]overlay={watermark_position}", "-preset", preset, "-codec:a", "copy", "-y", output_vid
+                                                        ]
+                                elif muxing_type == 'HardMux':
+                                        output_vid = f"{Wdir}/{str(userx)}_{str(file_name)}_({str(muxing_type)}).mp4"
+                                        preset =  USER_DATA()[userx]['muxer']['preset']
+                                        process_name = '🎮HardMuxing Subtitles'
+                                        command = [
+                                                                'ffmpeg','-hide_banner',
+                                                                '-progress', progress, '-i', the_media,
+                                                                '-vf', f"subtitles='{sub_loc}'",
+                                                                '-map','0:v',
+                                                                '-map','0:a',
+                                                                '-preset', preset,
+                                                                '-c:a','copy', '-y', output_vid
+                                                                ]
+                                elif muxing_type == 'SoftMux':
+                                        output_vid = f"{Wdir}/{str(userx)}_{str(file_name)}_({str(muxing_type)}).mkv"
+                                        preset =  USER_DATA()[userx]['muxer']['preset']
+                                        process_name = '🎮SoftMuxing Subtitles'
+                                        command = [
+                                                                'ffmpeg','-hide_banner',
+                                                                '-progress', progress, '-i', the_media,
+                                                                '-i',sub_loc,
+                                                                '-map','1:0','-map','0',
+                                                                '-disposition:s:0','default',
+                                                                '-c:v','copy',
+                                                                '-c:a','copy',
+                                                                '-c:s','copy',
+                                                                '-y',output_vid
+                                                                ]
+                                elif muxing_type == 'SoftReMux':
+                                        output_vid = f"{Wdir}/{str(userx)}_{str(file_name)}_({str(muxing_type)}).mkv"
+                                        preset =  USER_DATA()[userx]['muxer']['preset']
+                                        process_name = '🎮SoftReMuxing Subtitles'
+                                        command = [
+                                                                'ffmpeg','-hide_banner',
+                                                                '-progress', progress, '-i', the_media,
+                                                                '-i',sub_loc,
+                                                                '-map','0:v:0',
+                                                                '-map','0:a?',
+                                                                '-map','1:0',
+                                                                '-disposition:s:0','default',
+                                                                '-c:v','copy',
+                                                                '-c:a','copy',
+                                                                '-c:s','copy',
+                                                                '-y',output_vid
+                                                                ]
+                                trash_list.append(output_vid)
+                                await delete_trash(output_vid)
+                                datam = (file_name, process_name, mptime)
+                                modes['process_type'] = muxing_type
+                                wresult = await ffmpeg_engine(bot, user_id, reply, command, the_media, output_vid, preset, progress, duration, datam, modes)
+                                if wresult[0]:
+                                        if wresult[1]:
+                                                await clear_trash_list(trash_list)
+                                                await reply.edit("🔒Task Cancelled By User")
+                                        else:
+                                                final_video = output_vid
+                                                final_thumb = './thumb.jpg'
+                                                cc = f"{str(file_name)}"
+                                                datam = (file_name, '🔼Uploading Video', '𝚄𝚙𝚕𝚘𝚊𝚍𝚎𝚍', mptime)
+                                                start_time = timex()
+                                                upload = await send_tg_video(bot, user_id, final_video, cc, duration, final_thumb, reply, start_time, datam, modes)
+                                                check_data = [[process_id, get_master_process()]]
+                                                checker = await process_checker(check_data)
+                                                if not checker:
+                                                        await clear_trash_list(trash_list)
+                                                        await reply.edit("🔒Task Cancelled By User")
+                                                        return
+                                                if upload[0]:
+                                                        await clear_trash_list(trash_list)
+                                                        await reply.delete()
+                                                        await bot.send_message(user_id, "✅Task Completed Successfully")
+                                                else:
+                                                        await clear_trash_list(trash_list)
+                                                        await reply.edit(f"❌Uploading Failed\n\nError: {str(upload[1])}")
+                                else:
+                                        await clear_trash_list(trash_list)
+                                        await reply.edit(f"❌{muxing_type} Process Failed")
+                        else:
+                                await delete_trash(dl_loc)
+                                await reply.edit(f"❌Downloading Failed\n\nError: {str(download[1])}")
+                except Exception as e:
+                        await reply.edit(f"❌Some Error Occured, While Processing.\n\nError: {str(e)}")
+                await clear_trash_list(trash_list)
+                remove_master_process(process_id)
+                return
 
 ################Start####################
 @Client.on_message(filters.command('start'))
@@ -189,6 +440,71 @@ async def add(client, message):
     return
 
 
+##########WaterMark Adder############
+@Client.on_message(filters.command('addwatermark'))
+async def addwatermark(bot, message):
+        user_id = message.chat.id
+        userx = message.from_user.id
+        if userx not in USER_DATA():
+                await new_user(userx)
+        watermark_path = f'./{str(userx)}_watermark.jpg'
+        watermark_check = await check_filex(watermark_path)
+        if not watermark_check:
+                await bot.send_message(user_id, "❗No Watermark Found, Save Watermark First With /watermark Command.")
+                return
+        if userx in sudo_users:
+                muxing_type = 'Watermark'
+                await processor(bot, message,muxing_type)
+                return
+        else:
+                await bot.send_message(user_id, "❌Not Authorized")
+                return
+        
+
+###########Hard Muxing#################
+@Client.on_message(filters.command('hardmux'))
+async def hardmuxvideo(bot, message):
+        user_id = message.chat.id
+        userx = message.from_user.id
+        if userx not in USER_DATA():
+                await new_user(userx)
+        if userx in sudo_users:
+                muxing_type = 'HardMux'
+                await processor(bot, message,muxing_type)
+                return
+        else:
+                await bot.send_message(user_id, "❌Not Authorized")
+                return
+
+###########Soft Muxing#################
+@Client.on_message(filters.command('softmux'))
+async def softmuxvideo(bot, message):
+        user_id = message.chat.id
+        userx = message.from_user.id
+        if userx not in USER_DATA():
+                await new_user(userx)
+        if userx in sudo_users:
+                muxing_type = 'SoftMux'
+                await processor(bot, message,muxing_type)
+                return
+        else:
+                await bot.send_message(user_id, "❌Not Authorized")
+                return
+
+###########SoftRe Muxing#################
+@Client.on_message(filters.command('softremux'))
+async def softremuxvideo(bot, message):
+        user_id = message.chat.id
+        userx = message.from_user.id
+        if userx not in USER_DATA():
+                await new_user(userx)
+        if userx in sudo_users:
+                muxing_type = 'SoftReMux'
+                await processor(bot, message,muxing_type)
+                return
+        else:
+                await bot.send_message(user_id, "❌Not Authorized")
+                return
 
 ###############start remux##############
 

@@ -7,7 +7,8 @@ def append_master_process(id):
     return
 
 def remove_master_process(id):
-    master_process.remove(id)
+    if id in master_process:
+        master_process.remove(id)
     return
 
 def get_master_process():
@@ -20,7 +21,8 @@ def append_sub_process(id):
     return
 
 def remove_sub_process(id):
-    sub_process.remove(id)
+    if id in sub_process:
+        sub_process.remove(id)
     return
 
 def get_sub_process():

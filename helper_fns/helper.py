@@ -9,6 +9,10 @@ from os.path import exists, isdir
 from subprocess import PIPE as subprocessPIPE, STDOUT as subprocessSTDOUT
 from subprocess import run as subprocessrun
 from psutil import disk_usage, cpu_percent,virtual_memory
+from shlex import split as shlexsplit
+from asyncio import create_subprocess_exec
+from asyncio.subprocess import PIPE
+from typing import Tuple
 
 
 db = Database()
@@ -259,3 +263,28 @@ async def check_filex(file):
         return True
     else:
         return False
+    
+    
+
+#########process checker########
+async def process_checker(check_data):
+    for data in check_data:
+        if data[0] not in data[1]:
+            return False
+    return True
+
+
+
+########get stream output#######
+async def execute(cmnd: str) -> Tuple[str, str, int, int]:
+    cmnds = shlexsplit(cmnd)
+    process = await create_subprocess_exec(
+        *cmnds,
+        stdout=PIPE,
+        stderr=PIPE
+    )
+    stdout, stderr = await process.communicate()
+    return (stdout.decode('utf-8', 'replace').strip(),
+            stderr.decode('utf-8', 'replace').strip(),
+            process.returncode,
+            process.pid)
