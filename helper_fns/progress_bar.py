@@ -41,6 +41,7 @@ async def progress_bar(current,total,reply,start, client, datam, modes):
             sp=str(hrb(speed))+"ps"
             tot=hrb(total)
             cur=hrb(current)
+            ETA = get_readable_time((total-current)/speed)
             progress = get_progress_bar_string(current,total)
             try:
                 if modes['files']>1:
@@ -75,6 +76,7 @@ async def progress_bar(current,total,reply,start, client, datam, modes):
                     process_mid = f"🔹MP Time: {str(masterprocess_time)}"
                     ptext = f"🔴Cancel Task: `/cancel mp {str(process_id)}`"
                     process_foot = f"♥️Bot Uptime: {str(bot_uptime)}\n{str(ptext)}"
+                process_mid = f"⏰️ETA Time: {ETA}\n" + process_mid
                 pro_bar = f"{str(process_head)}\n\n\n {str(progress)}\n\n ┌ 𝙿𝚛𝚘𝚐𝚛𝚎𝚜𝚜:【 {perc} 】\n ├ 𝚂𝚙𝚎𝚎𝚍:【 {sp} 】\n ├ {mode}:【 {cur} 】\n └ 𝚂𝚒𝚣𝚎:【 {tot} 】\n\n\n{str(process_mid)}\n{str(get_stats())}\n{str(process_foot)}"
                 await reply.edit(pro_bar)
             except FloodWait as e:

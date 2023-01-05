@@ -25,7 +25,7 @@ async def newbt(client, callback_query):
         # await callback_query.message.delete()
         
         
-        if txt.startswith("position_") or txt.startswith("size_") or txt.startswith("wpreset_") or txt.startswith("mpreset_") or txt.startswith("cpreset_") or txt.startswith("ccrp_") or txt.startswith("sstream_"):
+        if txt.startswith("position_") or txt.startswith("size_") or txt.startswith("wpreset_") or txt.startswith("mpreset_") or txt.startswith("cpreset_") or txt.startswith("ccrp_") or txt.startswith("sstream_") or txt.startswith("autostream_") or txt.startswith("splitvideo_") or txt.startswith("splitsize_"):
                 new_position = txt.split("_", 1)[1]
                 if txt.startswith("position_"):
                     await saveconfig(userx, 'watermark', 'position', new_position)
@@ -37,25 +37,42 @@ async def newbt(client, callback_query):
                     await saveconfig(userx, 'muxer', 'preset', new_position)
                 elif txt.startswith("cpreset_"):
                     await saveconfig(userx, 'compress', 'preset', new_position)
-                elif txt.startswith("ccrp_"):
-                    await saveconfig(userx, 'compress', 'crf', new_position)
                 elif txt.startswith("sstream_"):
                     if new_position=="True":
                         new_position = True
                     else:
                         new_position = False
                     await saveoptions(userx, 'select_stream', new_position)
+                elif txt.startswith("autostream_"):
+                    await saveoptions(userx, 'stream', new_position)
+                elif txt.startswith("splitvideo_"):
+                    if new_position=="True":
+                        new_position = True
+                    else:
+                        new_position = False
+                    await saveoptions(userx, 'split_video', new_position)
+                elif txt.startswith("splitsize_"):
+                    await saveoptions(userx, 'split', new_position)
                 watermark_position = USER_DATA()[userx]['watermark']['position']
                 watermark_size = USER_DATA()[userx]['watermark']['size']
                 watermark_preset = USER_DATA()[userx]['watermark']['preset']
                 muxer_preset = USER_DATA()[userx]['muxer']['preset']
                 compress_preset = USER_DATA()[userx]['compress']['preset']
-                compress_crp = USER_DATA()[userx]['compress']['crf']
                 select_stream = USER_DATA()[userx]['select_stream']
+                stream = USER_DATA()[userx]['stream']
+                split_video = USER_DATA()[userx]['split_video']
+                split = USER_DATA()[userx]['split']
                 positions = {'Set Top Left':"position_5:5", "Set Top Right": "position_main_w-overlay_w-5:5", "Set Bottom Left": "position_5:main_h-overlay_h", "Set Bottom Right": "position_main_w-overlay_w-5:main_h-overlay_h-5"}
                 sizes = [5,7,10,13,15,17,20,25,30,35,40,45]
                 pkeys = list(positions.keys())
                 KeyBoard = []
+                watermark_path = f'./{str(userx)}_watermark.jpg'
+                watermark_check = await check_filex(watermark_path)
+                if watermark_check:
+                        key = [InlineKeyboardButton(f"🔶Watermark - Found✅🔶", callback_data="lol-water")]
+                else:
+                        key = [InlineKeyboardButton(f"🔶Watermark - Not Found❌🔶", callback_data="lol-water")]
+                KeyBoard.append(key)
                 KeyBoard.append([InlineKeyboardButton(f"🔶Watermark Position - {wpositions[watermark_position]}🔶", callback_data="lol-wposition")])
                 WP1 = []
                 WP2 = []
@@ -160,8 +177,77 @@ async def newbt(client, callback_query):
                 KeyBoard.append(cp1)
                 KeyBoard.append(cp2)
                 KeyBoard.append(cp3)
-                KeyBoard.append([InlineKeyboardButton(f"🔶Compress CRF - {compress_crp}🔶", callback_data="lol-ccrp")])
+                streams = [True, False]
+                KeyBoard.append([InlineKeyboardButton(f"🔶Select Stream - {str(select_stream)}🔶", callback_data="lol-sstream")])
+                st = []
+                for x in streams:
+                    vlue = f"sstream_{str(x)}"
+                    if select_stream!=x:
+                        datam = f"{str(x)}"
+                    else:
+                        datam = f"{str(x)} 🟢"
+                    keyboard = InlineKeyboardButton(datam, callback_data=vlue)
+                    st.append(keyboard)
+                KeyBoard.append(st)
+                streams = ['ENG', 'HIN']
+                KeyBoard.append([InlineKeyboardButton(f"🔶Auto Select Stream - {str(stream)}🔶", callback_data="lol-sstream")])
+                st = []
+                for x in streams:
+                    vlue = f"autostream_{str(x)}"
+                    if stream!=x:
+                        datam = f"{str(x)}"
+                    else:
+                        datam = f"{str(x)} 🟢"
+                    keyboard = InlineKeyboardButton(datam, callback_data=vlue)
+                    st.append(keyboard)
+                KeyBoard.append(st)
+                streams = [True, False]
+                KeyBoard.append([InlineKeyboardButton(f"🔶Split Video - {str(split_video)}🔶", callback_data="lol-splitv")])
+                st = []
+                for x in streams:
+                    vlue = f"splitvideo_{str(x)}"
+                    if split_video!=x:
+                        datam = f"{str(x)}"
+                    else:
+                        datam = f"{str(x)} 🟢"
+                    keyboard = InlineKeyboardButton(datam, callback_data=vlue)
+                    st.append(keyboard)
+                KeyBoard.append(st)
+                streams = ['2GB', '4GB']
+                KeyBoard.append([InlineKeyboardButton(f"🔶Split Size - {str(split)}🔶", callback_data="lol-splits")])
+                st = []
+                for x in streams:
+                    vlue = f"splitsize_{str(x)}"
+                    if split!=x:
+                        datam = f"{str(x)}"
+                    else:
+                        datam = f"{str(x)} 🟢"
+                    keyboard = InlineKeyboardButton(datam, callback_data=vlue)
+                    st.append(keyboard)
+                KeyBoard.append(st)
+                try:
+                    await callback_query.message.edit(
+                        text="Settings",
+                        disable_web_page_preview=True,
+                        reply_markup=InlineKeyboardMarkup(KeyBoard))
+                except Exception as e:
+                    print(e)
+                return
+
+        elif txt.startswith("ccrf_") or txt.startswith("wcrf_") or txt.startswith("mcrf_"):
+                new_position = txt.split("_", 1)[1]
+                if txt.startswith("ccrf_"):
+                        await saveconfig(userx, 'compress', 'crf', new_position)
+                elif txt.startswith("wcrf_"):
+                        await saveconfig(userx, 'watermark', 'crf', new_position)
+                elif txt.startswith("mcrf_"):
+                        await saveconfig(userx, 'muxer', 'crf', new_position)
+                compress_crf = USER_DATA()[userx]['compress']['crf']
+                watermark_crf = USER_DATA()[userx]['watermark']['crf']
+                muxer_crf = USER_DATA()[userx]['muxer']['crf']
                 crfs = [0, 3, 6, 9, 12, 15, 18, 21, 23, 24, 27, 28, 30, 33, 36, 39, 42, 45, 48, 51]
+                KeyBoard = []
+                KeyBoard.append([InlineKeyboardButton(f"🔶WaterMark CRF - {watermark_crf}🔶", callback_data="lol-wcrf")])
                 CCRP1 = []
                 CCRP2 = []
                 CCRP3 = []
@@ -169,8 +255,8 @@ async def newbt(client, callback_query):
                 CCRP5 = []
                 zz = 1
                 for x in crfs:
-                    vlue = f"ccrp_{str(x)}"
-                    if int(compress_crp)!=int(x):
+                    vlue = f"wcrf_{str(x)}"
+                    if int(watermark_crf)!=int(x):
                         datam = f"{str(x)}"
                     else:
                         datam = f"{str(x)} 🟢"
@@ -191,25 +277,66 @@ async def newbt(client, callback_query):
                 KeyBoard.append(CCRP3)
                 KeyBoard.append(CCRP4)
                 KeyBoard.append(CCRP5)
-                streams = [True, False]
-                KeyBoard.append([InlineKeyboardButton(f"🔶Select Stream - {str(select_stream)}🔶", callback_data="lol-sstream")])
-                st = []
-                for x in streams:
-                    vlue = f"sstream_{str(x)}"
-                    if select_stream!=x:
+                KeyBoard.append([InlineKeyboardButton(f"🔶Muxer CRF - {muxer_crf}🔶", callback_data="lol-mcrf")])
+                CCRP1 = []
+                CCRP2 = []
+                CCRP3 = []
+                CCRP4 = []
+                CCRP5 = []
+                zz = 1
+                for x in crfs:
+                    vlue = f"mcrf_{str(x)}"
+                    if int(muxer_crf)!=int(x):
                         datam = f"{str(x)}"
                     else:
                         datam = f"{str(x)} 🟢"
                     keyboard = InlineKeyboardButton(datam, callback_data=vlue)
-                    st.append(keyboard)
-                KeyBoard.append(st)
-                watermark_path = f'./{str(userx)}_watermark.jpg'
-                watermark_check = await check_filex(watermark_path)
-                if watermark_check:
-                        key = [InlineKeyboardButton(f"🔶Watermark - Found✅🔶", callback_data="lol-water")]
-                else:
-                        key = [InlineKeyboardButton(f"🔶Watermark - Not Found❌🔶", callback_data="lol-water")]
-                KeyBoard.append(key)
+                    if zz<5:
+                            CCRP1.append(keyboard)
+                    elif zz<9:
+                            CCRP2.append(keyboard)
+                    elif zz<13:
+                            CCRP3.append(keyboard)
+                    elif zz<17:
+                        CCRP4.append(keyboard)
+                    else:
+                        CCRP5.append(keyboard)
+                    zz+=1
+                KeyBoard.append(CCRP1)
+                KeyBoard.append(CCRP2)
+                KeyBoard.append(CCRP3)
+                KeyBoard.append(CCRP4)
+                KeyBoard.append(CCRP5)
+                KeyBoard.append([InlineKeyboardButton(f"🔶Compress CRF - {compress_crf}🔶", callback_data="lol-ccrp")])
+                CCRP1 = []
+                CCRP2 = []
+                CCRP3 = []
+                CCRP4 = []
+                CCRP5 = []
+                zz = 1
+                for x in crfs:
+                    vlue = f"ccrf_{str(x)}"
+                    if int(compress_crf)!=int(x):
+                        datam = f"{str(x)}"
+                    else:
+                        datam = f"{str(x)} 🟢"
+                    keyboard = InlineKeyboardButton(datam, callback_data=vlue)
+                    if zz<5:
+                            CCRP1.append(keyboard)
+                    elif zz<9:
+                            CCRP2.append(keyboard)
+                    elif zz<13:
+                            CCRP3.append(keyboard)
+                    elif zz<17:
+                        CCRP4.append(keyboard)
+                    else:
+                        CCRP5.append(keyboard)
+                    zz+=1
+                KeyBoard.append(CCRP1)
+                KeyBoard.append(CCRP2)
+                KeyBoard.append(CCRP3)
+                KeyBoard.append(CCRP4)
+                KeyBoard.append(CCRP5)
                 try:
                     await callback_query.message.edit(
                         text="Settings",
@@ -218,7 +345,8 @@ async def newbt(client, callback_query):
                 except Exception as e:
                     print(e)
                 return
-    
+
+
         elif txt.startswith("lol"):
             data = txt.split('-')
             keyx = data[1]
