@@ -416,38 +416,7 @@ async def processor(bot, message, muxing_type):
                                                 await clear_trash_list(trash_list)
                                                 await reply.edit("🔒Task Cancelled By User")
                                         else:
-                                                compression = False
-                                                if compression:
-                                                        base_name, extension = splitext(output_vid)
-                                                        compressed_vid = f"{Wdir}/{str(userx)}_{str(file_name)}_compressed{str(extension)}"
-                                                        preset =  USER_DATA()[userx]['compress']['preset']
-                                                        compress_crf = USER_DATA()[userx]['compress']['crf']
-                                                        process_name = '🏮Compressing Video'
-                                                        modes['crf'] = compress_crf
-                                                        command = [
-                                                                                'ffmpeg','-hide_banner',
-                                                                                '-progress', progress, '-i', output_vid,
-                                                                                '-map','0:v',
-                                                                                '-map','0:a',
-                                                                                "-map", "0:s",
-                                                                                '-vcodec','libx265',
-                                                                                '-vtag', 'hvc1',
-                                                                                '-preset', preset,
-                                                                                '-crf',f'{str(compress_crf)}',
-                                                                                '-y',compressed_vid
-                                                                                ]
-                                                        trash_list.append(compressed_vid)
-                                                        await delete_trash(compressed_vid)
-                                                        await create_process_file(progress)
-                                                        datam = (file_name, process_name, mptime)
-                                                        modes['process_type'] = 'Compressing'
-                                                        cresult = await ffmpeg_engine(bot, user_id, reply, command, output_vid, compressed_vid, preset, progress, duration, datam, modes)
-                                                        if cresult[0]:
-                                                                if cresult[1]:
-                                                                        await clear_trash_list(trash_list)
-                                                                        await reply.edit("🔒Task Cancelled By User")
-                                                                else:
-                                                                        output_vid = compressed_vid
+                                                final_video = [output_vid]
                                                 split_video = False
                                                 premium = False
                                                 if getsize(output_vid)>209715200:
