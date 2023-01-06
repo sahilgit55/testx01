@@ -416,7 +416,7 @@ async def processor(bot, message, muxing_type):
                                                 await clear_trash_list(trash_list)
                                                 await reply.edit("🔒Task Cancelled By User")
                                         else:
-                                                compression = True
+                                                compression = False
                                                 if compression:
                                                         base_name, extension = splitext(output_vid)
                                                         compressed_vid = f"{Wdir}/{str(userx)}_{str(file_name)}_compressed{str(extension)}"
@@ -448,7 +448,7 @@ async def processor(bot, message, muxing_type):
                                                                         await reply.edit("🔒Task Cancelled By User")
                                                                 else:
                                                                         output_vid = compressed_vid
-                                                split_video = True
+                                                split_video = False
                                                 premium = False
                                                 if getsize(output_vid)>209715200:
                                                         if split_video:
